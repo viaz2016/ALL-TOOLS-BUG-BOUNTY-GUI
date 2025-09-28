@@ -13,80 +13,79 @@ It is intended to speed up triage and recon workflows by exposing common operati
 
 **ALL-TOOLS-BUG-BOUNTY-GUI** is a descriptive name with three parts:
 
-- **ALL-TOOLS** — indicates the project is an aggregator: instead of forcing users to memorize and run multiple command-line binaries one-by-one, this project integrates many of the most commonly used tools for reconnaissance and testing into one cohesive package. It focuses on the *tools* that bug bountiers use most often (fuzzers, scanners, crawlers, extractors, and lightweight exploit testers).
+- **ALL-TOOLS** — indicates the project aggregates many CLI tools commonly used by security researchers and bug bounty hunters, providing a single place to run and manage them.
+- **BUG-BOUNTY** — the domain: recon, scanning, verification and PoC generation workflows used in bug bounty programs.
+- **GUI** — a graphical interface: it wraps CLI tools with a user-friendly UI so less CLI overhead is required and workflows become reproducible.
 
-- **BUG-BOUNTY** — the intended domain: workflows and tasks common to bug-bounty hunters and security researchers (asset discovery, endpoint enumeration, vulnerability scanning, preliminary verification, and proof-of-concept generation).
-
-- **GUI** — a graphical interface: the project wraps CLI tools with a user interface (desktop or web) that reduces friction for repetitive tasks, enables safe presets, and makes it easier to share workflows with teammates or less-CLI-savvy collaborators.
-
-In practice, the GUI acts as an orchestrator: it runs canonical commands under the hood, manages output and artifacts (logs, HTTP responses, PoC files), and gives the user a single panel to launch, monitor, and export results. That keeps repeatable recon methodology, saves time and reduces manual mistakes.
+The GUI acts as an orchestrator: it executes canonical commands under the hood, manages outputs (endpoints lists, scan results, PoC files), and provides a single control panel to run, monitor and export results.
 
 ---
 
-## Included / Supported Tools (what they are and how GUI uses them)
+## Included / Supported Tools
 
-> *The list below describes common tools that this GUI bundles or is designed to integrate with. Your repo may include a subset — adapt to what you ship.*
+This project is designed to integrate with (or make it easy to use) the following tools:
 
-### `ffuf` — Fast web fuzzer
-- **What it is:** A fast HTTP fuzzing tool used for directory, parameter, and content discovery.
-- **Common GUI uses:** run endpoint enumeration against `/api/FUZZ` paths, show live results table with status code and content-length, export discovered endpoints to a file for follow-up scanning.
+- **ffuf** — fast web fuzzer for directory & parameter discovery  
+- **nuclei** — templated vulnerability scanner for CVEs and misconfigurations  
+- **LinkFinder** — JavaScript endpoint extractor  
+- **katana / hakrawler** — web crawlers for asset discovery  
+- **sqlmap** — automated SQL injection testing (use responsibly and ONLY with permission)  
+- **httpx / curl** — HTTP probing and header checks  
+- Optional integrations: `amass`, `subfinder`, `gobuster`, `httpx`, `burpsuite` hook, etc.
 
-### `nuclei`
-- **What it is:** A fast vulnerability scanner that runs templated checks (CVE, misconfig, exposures).
-- **Common GUI uses:** select template sets (http/api/exposures) and run them against discovered endpoints; provide severity filtering and store findings with template references.
-
-### `LinkFinder`
-- **What it is:** A JavaScript link/endpoint extractor (scans JS for hard-coded API endpoints).
-- **Common GUI uses:** fetch remote JS files, extract URLs and endpoints, add candidates to a queue or endpoint list for brute-force and nuclei scanning.
-
-### `katana` / `hakrawler` (crawlers)
-- **What they are:** Link crawlers that traverse a website and collect assets (JS, paths).
-- **Common GUI uses:** crawl a domain with configurable depth/timeouts, show collected asset list, optionally pass JS assets to LinkFinder.
-
-### `sqlmap`
-- **What it is:** An automated SQL injection and database testing tool.
-- **Common GUI uses (safe):** detect SQLi vulnerabilities with controlled tests (time-based or boolean), store detection logs, and allow responsible, non-destructive fingerprinting. **(Only use with explicit permission.)**
-
-### `httpx` / `curl`
-- **What they are:** HTTP probing and ad-hoc request tools.
-- **Common GUI uses:** quick endpoint probes, collecting headers (CORS, cookies), and lightweight response comparisons (production vs staging).
-
-### `others` (optional)
-- `subfinder` / `amass` — subdomain discovery
-- `shodan` / `wayback` integration — passive intelligence
-- `gobuster` — alternative brute-force
-- `burpsuite` integration hook — for sending items to active scanner
+Each tool is executed with safe defaults from the GUI; the raw commands are logged and saved for reproducibility.
 
 ---
 
 ## Features & Benefits
 
-- **One-click runs:** pre-configured runs for common recon flows (JS extraction → endpoint list → nuclei scan).
-- **Artifact management:** keep per-target folders of outputs (endpoints.txt, nuclei_results.txt, cors_results.txt, PoC HTML).
-- **Safe defaults:** conservative timeouts, optional WAF tamper presets and guidance for staging vs production.
-- **Extensible:** add new CLI tools and map them to GUI actions.
-- **Exportable reports:** generate markdown/zip reports of findings for bug-bounty submission.
+- One-click recon flows: crawl JS → extract endpoints → fuzz → scan.  
+- Artifact management: per-target output folders (endpoints.txt, nuclei_results.txt, cors_results.txt, PoC HTML).  
+- Safe presets & WAF tamper guidance for staging vs production.  
+- Extensible: add new tool integrations and map them to GUI actions.  
+- Exportable reports: generate Markdown/ZIP reports ready for bug-bounty reports.
 
 ---
 
 ## Installation (example)
 
-> This example assumes a Unix-like environment and that you have the required CLI tools installed (or you will install them separately). Adjust for Windows if needed.
-
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-cd YOUR_REPO
+git clone https://github.com/viaz2016/ALL-TOOLS-BUG-BOUNTY-GUI.git
+cd ALL-TOOLS-BUG-BOUNTY-GUI
 
-# Create and activate a python venv (recommended)
+# Create and activate a python venv
 python3 -m venv venv
 source venv/bin/activate
 
 # Install Python requirements (if provided)
 pip install -r requirements.txt
 
-# Ensure external tools are installed:
-# ffuf, nuclei, sqlmap, katana, httpx, etc.
-# e.g. on Debian/Ubuntu you might use apt / snap / or prebuilt binaries.
+# Ensure external CLI tools are installed separately:
+# ffuf, nuclei, linkfinder (python), katana, sqlmap, httpx, etc.
 
 # Run the GUI
 python3 src/main.py
+
+Quick start / Example workflow :
+
+⦁	Enter a target URL in the target field (e.g. https://example.com).
+⦁	Click Crawl to fetch JavaScript assets.
+⦁	Run LinkFinder to extract endpoints from JS.
+⦁	Run ffuf to fuzz candidate endpoints.
+⦁	Run nuclei on the discovered endpoints for vulnerabilities.
+⦁	Use the CORS checker to detect misconfigurations.
+⦁	Export the project folder (report.zip) with all artifacts for reporting.
+
+Example commands (what runs under the hood) :
+⦁	ffuf -u https://target.com/FUZZ -w /path/wordlist.txt -fc 404
+⦁	python3 linkfinder.py -i https://target.com/static/app.js -o cli
+⦁	nuclei -l endpoints.txt -t ./nuclei-templates/http/api/ -o nuclei_results.txt
+⦁	curl -sI -H "Origin: https://evil.com" https://target.com/api/endpoint
+
+Responsible Use & Legal Notice
+
+This project is intended for authorized security testing only. Always obtain written permission before testing systems you do not own. Unauthorized scanning or exploitation is illegal and unethical.
+
+Contribution
+
+Contributions are welcome: feature integrations, UI improvements, documentation, and tests. See CONTRIBUTING.md for details.
